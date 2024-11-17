@@ -1,0 +1,23 @@
+id: pip
+namespace: company
+
+tasks:
+  - id: wdir
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: clone
+        type: io.kestra.plugin.git.Clone
+        url: https://github.com/anna-geller/python-in-kestra
+        branch: main
+        username: anna-geller
+        password: "{{ kv('GITHUB_ACCESS_TOKEN') }}"
+
+      - id: python
+        type: io.kestra.plugin.scripts.python.Script
+        beforeCommands:
+          - pip install .
+        script: |
+          import etl.utils as etl
+
+          out = etl.standardize_date_format("12/24/2024")
+          print(out)

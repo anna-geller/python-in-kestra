@@ -1,7 +1,10 @@
-import re
 from datetime import datetime
-from typing import List, Optional
+import re
+from typing import Optional
+
+from dateutil import parser
 from kestra import Kestra
+
 
 def clean_whitespace(text: str) -> str:
     """
@@ -43,35 +46,31 @@ def title_case(text: str) -> str:
     return result
 
 
-def standardize_date_format(
-    date_str: str, input_formats: List[str], output_format: str = "%Y-%m-%d"
-) -> Optional[str]:
+def standardize_date_format(date_str: str) -> Optional[str]:
     """
-    Converts a date string into a specified format.
+    Autodetects the format of a date string and standardizes it to the format YYYY-MM-DD.
 
     Parameters:
         date_str (str): Input date string.
-        input_formats (List[str]): List of possible input formats.
-        output_format (str): Desired output format. Defaults to "%Y-%m-%d".
 
     Returns:
-        Optional[str]: Date string in the desired format, or None if parsing fails.
+        Optional[str]: Date string in the standardized format (YYYY-MM-DD), or None if parsing fails.
 
     Example:
-        >>> standardize_date_format("02/15/1988", ["%m/%d/%Y", "%d-%m-%Y"])
+        >>> standardize_date_format("02/15/1988")
         '1988-02-15'
-        >>> standardize_date_format("15-02-1988", ["%m/%d/%Y", "%d-%m-%Y"])
+        >>> standardize_date_format("15-02-1988")
+        '1988-02-15'
+        >>> standardize_date_format("1988.02.15")
         '1988-02-15'
     """
-    for fmt in input_formats:
-        try:
-            result = datetime.strptime(date_str, fmt).strftime(output_format)
-            output = dict(input=date_str, output=result)
-            Kestra.outputs(output)
-            return result
-        except ValueError:
-            continue
-    return None
+    try:
+        parsed_date = parser.parse(date_str)  # Automatically detect the input format
+        standardized_date = parsed_date.strftime("%Y-%m-%d")  # Output in standardized format
+        Kestra.outputs(dict(input=date_str, output=standardized_date))
+        return standardized_date
+    except (ValueError, parser.ParserError):  # Handle invalid dates
+        return None
 
 
 def remove_special_characters(text: str, allowed_chars: str = "") -> str:
